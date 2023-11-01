@@ -200,7 +200,6 @@ def measure(sudoku):
 initial_sudoku = initialize(instance)
 
 
-
 # ARC CONSISTENCY
 
 
@@ -241,8 +240,10 @@ def verify_consistent_arc(sudoku, cell1, cell2):
                 ok = True
         if not ok:
             new_sudoku[row1][col1]['domain'].remove(value)
+            print("\033[31:33mInconsistent arc" + str(cell1) + "-" + str(cell2) + " because of value:  " + str(
+                value) + "\033[0m")
             if len(new_sudoku[row1][col1]['domain']) == 0:
-                print("\033[33mInconsistent arc " + str(cell1) + " " + str(cell2) + "\033[0m")
+                print("\033[33m" + str(cell1) + " doesn't have anymore values " + "\033[0m")
                 return None
     return new_sudoku
 
@@ -251,16 +252,17 @@ def arc_consistency(sudoku):
     queue = deque()
     arcs = generate_arcs(sudoku)
     queue.extend(arcs)
+    copy_sudoku = copy.deepcopy(sudoku)
     while queue:
         cell1, cell2 = queue.popleft()
-        new_sudoku = verify_consistent_arc(sudoku, cell1, cell2)
+        new_sudoku = verify_consistent_arc(copy_sudoku, cell1, cell2)
         if new_sudoku is None:
             return None
-        if new_sudoku != sudoku:
-            sudoku = new_sudoku
+        if new_sudoku != copy_sudoku:
+            copy_sudoku = new_sudoku
             queue.clear()
             queue.extend(arcs)
-    return sudoku
+    return copy_sudoku
 
 
 def forward_checking_ac(sudok):
@@ -285,10 +287,26 @@ def forward_checking_ac(sudok):
 
     return None
 
+
 # solution = forward_checking(initial_sudoku)
 # show(solution)
 # solution2 = forward_checking_mrv(initial_sudoku)
 # show(solution2)
 # solution3 = forward_checking_ac(initial_sudoku)
 # show(solution3)
-measure(initial_sudoku)
+#measure(initial_sudoku)
+
+instance2 = [
+    [-1, 0, -1, 4, -1, -1, 8, -1, 0],
+    [5, 2, 0, 0, -1, 8, -1, -1, -1],
+    [9, -1, 0, 5, 0, -1, 0, 3, 6],
+    [0, 0, -1, -1, -1, 0, 0, -1, -1],
+    [6, -1, -1, -1, 0, 0, -1, 9, 0],
+    [0, -1, 1, -1, -1, 0, 2, 8, -1],
+    [8, 0, 0, 9, 7, -1, -1, 6, 3],
+    [-1, -1, 3, 0, 6, -1, -1, 0, 0],
+    [-1, 5, 0, 0, 0, 3, -1, 0, 1]
+]
+
+initial_sudoku2 = initialize(instance2)
+measure(initial_sudoku2)
