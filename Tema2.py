@@ -19,8 +19,41 @@ import time
 from collections import deque
 
 
+def validate(sudoku):
+    if len(sudoku) != 9:
+        return False
+    for i in range(9):
+        if len(sudoku[i]) != 9:
+            return False
+    for i in range(9):
+        for j in range(9):
+            if sudoku[i][j] < -1 or sudoku[i][j] > 9:
+                return False
+    for row in range(9):
+        for i in range(1, 9):
+            if sudoku[row].count(i) > 1:
+                return False
+    for col in range(9):
+        for i in range(1, 9):
+            if [sudoku[row][col] for row in range(9)].count(i) > 1:
+                return False
+    for i in range(0, 9, 3):
+        for j in range(0, 9, 3):
+            s_val = []
+            for x in range(i, i + 3):
+                for y in range(j, j + 3):
+                    if sudoku[x][y] > 0:
+                        s_val.append(sudoku[x][y])
+            if len(set(s_val)) != len(s_val):
+                return False
+    return True
+
+
 # Functia de initializare
 def initialize(instance):
+    if not validate(instance):
+        print("Invalid sudoku")
+        return None
     size = len(instance)
     structure = [[{'value': instance[i][j],
                    'domain': instance[i][j] if instance[i][j] > 0 else list(range(1, 10)) if instance[i][j] == -1
@@ -47,24 +80,7 @@ def initialize(instance):
                 for y in range(j, j + 3):
                     if structure[x][y]['value'] == -1:
                         structure[x][y]['domain'] = list(set(structure[x][y]['domain']) - square_values)
-    for i in range(size):
-        for j in range(size):
-            print(i, j, structure[i][j]['domain'])
-        print("\n")
     return structure
-
-
-instance = [
-    [8, 4, -1, -1, 5, -1, 0, -1, -1],
-    [3, -1, -1, 6, -1, 8, -1, 4, -1],
-    [-1, -1, 0, 4, -1, 9, -1, -1, 0],
-    [-1, 2, 3, -1, 0, -1, 9, 8, -1],
-    [1, -1, -1, 0, -1, 0, -1, -1, 4],
-    [-1, 9, 8, -1, 0, -1, 1, 6, -1],
-    [0, -1, -1, 5, -1, 3, 0, -1, -1],
-    [-1, 3, -1, 1, -1, 6, -1, -1, 7],
-    [-1, -1, 0, -1, 2, -1, -1, 1, 3]
-]
 
 
 def is_final(sudoku):
@@ -124,7 +140,6 @@ def forward_checking(sudoku):
     for i in range(9):
         for j in range(9):
             if sudoku[i][j]['value'] < 1:
-                print(i, j, sudoku[i][j]['domain'])
                 for value in list(sudoku[i][j]['domain']):
                     print("\033[32mTrying value " + str(value) + " for cell " + str(i) + " " + str(j) + "\033[0m")
                     updated_sudoku = transform(sudoku, i, j, value)
@@ -181,6 +196,11 @@ def measure(sudoku):
     solution_mrv = forward_checking_mrv(sudoku)
     end_time_mrv = time.time()
     exec_time_mrv = end_time_mrv - start_time_mrv
+    print(" -----------------  ARC CONSISTENCY + MRV ----------------- ")
+    start_time = time.time()
+    solution_ac_mrv = forward_checking_ac_mrv(sudoku)
+    end_time = time.time()
+    exec_time_ac_mrv = end_time - start_time
     print(" -----------------  ARC CONSISTENCY  ----------------- ")
     start_time = time.time()
     solution_ac = forward_checking_ac(sudoku)
@@ -195,9 +215,9 @@ def measure(sudoku):
     if solution_ac is not None:
         print("Solution found with arc consistency in " + str(exec_time_ac))
         show(solution_ac)
-
-
-initial_sudoku = initialize(instance)
+    if solution_ac_mrv is not None:
+        print("Solution found with arc consistency + MRV in " + str(exec_time_ac_mrv))
+        show(solution_ac_mrv)
 
 
 # ARC CONSISTENCY
@@ -260,8 +280,12 @@ def arc_consistency(sudoku):
             return None
         if new_sudoku != copy_sudoku:
             copy_sudoku = new_sudoku
-            queue.clear()
-            queue.extend(arcs)
+            # queue.clear()
+            # queue.extend(arcs)
+            for adj in get_adjacent(cell1[0], cell1[1]):
+                if adj != cell2 and copy_sudoku[adj[0]][adj[1]]['value'] < 1:
+                    queue.append((adj, cell1))
+
     return copy_sudoku
 
 
@@ -269,6 +293,8 @@ def forward_checking_ac(sudok):
     if is_final(sudok):
         return sudok
     sudoku = arc_consistency(sudok)
+    if sudoku is None:
+        return None
     for i in range(9):
         for j in range(9):
             if sudoku[i][j]['value'] < 1:
@@ -276,11 +302,12 @@ def forward_checking_ac(sudok):
                     print("\033[32mTrying value " + str(value) + " for cell " + str(i) + " " + str(j) + "\033[0m")
                     new_sudoku = transform(sudoku, i, j, value)
                     if new_sudoku is not None:
-                        arc_cons = arc_consistency(new_sudoku)
+                        # arc_cons = arc_consistency(new_sudoku)
                         show(new_sudoku)
-                        if arc_cons is None:
-                            continue
-                        result = forward_checking_ac(arc_cons)
+                        # if arc_cons is None:
+                        #    continue
+                        # result = forward_checking_ac(arc_cons)
+                        result = forward_checking_ac(new_sudoku)
                         if result:
                             return result
                     return None
@@ -288,13 +315,40 @@ def forward_checking_ac(sudok):
     return None
 
 
-# solution = forward_checking(initial_sudoku)
-# show(solution)
-# solution2 = forward_checking_mrv(initial_sudoku)
-# show(solution2)
-# solution3 = forward_checking_ac(initial_sudoku)
-# show(solution3)
-#measure(initial_sudoku)
+def forward_checking_ac_mrv(sudok):
+    if is_final(sudok):
+        return sudok
+    sudoku = arc_consistency(sudok)
+    if sudoku is None:
+        return None
+    row, col = mrv(sudoku)
+    if row == -1 and col == -1:
+        return sudoku
+    for value in list(sudoku[row][col]['domain']):
+        print("\033[32mTrying value " + str(value) + " for cell " + str(row) + " " + str(col) + "\033[0m")
+        updated_sudoku = transform(sudoku, row, col, value)
+        if updated_sudoku is not None:
+            # arc_cons = arc_consistency(updated_sudoku)
+            #  if arc_cons is None:
+            #      continue
+            show(updated_sudoku)
+            result = forward_checking_ac_mrv(updated_sudoku)
+            if result:
+                return result
+    return None
+
+
+instance = [
+    [8, 4, -1, -1, 5, -1, 0, -1, -1],
+    [3, -1, -1, 6, -1, 8, -1, 4, -1],
+    [-1, -1, 0, 4, -1, 9, -1, -1, 0],
+    [-1, 2, 3, -1, 0, -1, 9, 8, -1],
+    [1, -1, -1, 0, -1, 0, -1, -1, 4],
+    [-1, 9, 8, -1, 0, -1, 1, 6, -1],
+    [0, -1, -1, 5, -1, 3, 0, -1, -1],
+    [-1, 3, -1, 1, -1, 6, -1, -1, 7],
+    [-1, -1, 0, -1, 2, -1, -1, 1, 3]
+]
 
 instance2 = [
     [-1, 0, -1, 4, -1, -1, 8, -1, 0],
@@ -308,5 +362,41 @@ instance2 = [
     [-1, 5, 0, 0, 0, 3, -1, 0, 1]
 ]
 
+instance3 = [
+    [-1, -1, 6, -1, 5, 0, 0, -1, 0],
+    [9, 0, 2, -1, -1, 6, 0, -1, -1],
+    [-1, 4, -1, 8, -1, 0, 7, -1, 6],
+    [6, -1, 0, 9, 2, -1, -1, 7, 0],
+    [0, -1, 7, 4, 0, 5, 0, 3, 1],
+    [0, -1, 1, -1, 0, -1, -1, 0, 0],
+    [8, 2, -1, 0, -1, -1, -1, 4, -1],
+    [-1, 0, 0, -1, 1, 0, -1, 0, 9],
+    [-1, -1, -1, 0, 0, 7, 6, 0, -1]
+]
+
+instance4 = [
+    [2, -1, 4, 5, 0, 7, -1, 0, -1],
+    [-1, -1, 0, -1, -1, -1, 2, 0, 6],
+    [-1, -1, 0, 0, 0, 8, 7, -1, -1],
+    [0, 8, -1, -1, -1, 0, 5, -1, 4],
+    [-1, 0, 7, 0, 1, 0, 3, 6, -1],
+    [0, -1, -1, 9, -1, 0, 0, -1, 0],
+    [0, 0, 3, 0, 0, -1, 9, -1, -1],
+    [1, 0, -1, -1, -1, 3, 4, 0, 0],
+    [9, -1, 0, 4, 0, 5, 0, -1, -1]
+]
+
+initial_sudoku = initialize(instance)
 initial_sudoku2 = initialize(instance2)
-measure(initial_sudoku2)
+initial_sudoku3 = initialize(instance3)
+initial_sudoku4 = initialize(instance4)
+# solution = forward_checking(initial_sudoku)
+# show(solution)
+# solution2 = forward_checking_mrv(initial_sudoku)
+# show(solution2)
+# solution3 = forward_checking_ac(initial_sudoku)
+# show(solution3)
+# measure(initial_sudoku)
+
+
+# measure(initial_sudoku2)
