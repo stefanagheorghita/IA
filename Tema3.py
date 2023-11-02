@@ -12,7 +12,7 @@ magic_square = [
 
 
 def initialize():
-    return [8, 1, 6, 3, 5, 7, 4, 9, 2]
+    return [8, 1, 6, 3, 5, 7, 4, 9, 2, 'A']
 
 
 def is_final_state(state):
@@ -30,9 +30,10 @@ def is_final_state(state):
     #             if values_B[first] + values_B[second] + values_B[third] == 15:
     #                 return True, 'B'
     for i in range(3):
-        if state[i * 3: i * 3 + 3].count('A') == 3 or state[i::3].count('A') == 3:
+        if state[i * 3: i * 3 + 3].count('A') == 3 or state[i:9:3].count('A') == 3:
             return True, 'A'
-        if state[i * 3: i * 3 + 3].count('B') == 3 or state[i::3].count('B') == 3:
+        # if state[i * 3 : i * 3 + 3].count('B') == 3 or state[i:9:3].count('B') == 3:
+        if state[i * 3: i * 3 + 3].count('B') == 3 or state[i:9:3].count('B') == 3:
             return True, 'B'
     if state[0:9:4].count('A') == 3 or state[2:7:2].count('A') == 3:
         return True, 'A'
@@ -42,24 +43,28 @@ def is_final_state(state):
     for i in range(9):
         if not isinstance(state[i], int):
             k += 1
-    if k == len(state):
+    if k == 9:
         return True, 'remiza'
     return False, None
 
 
 def validate_transition(state, number):
-    for i in range(len(state)):
+    for i in range(9):
         if state[i] == number:
             return True
     return False
 
 
-def transition(state, number, player):
+def transition(state, number):
     if validate_transition(state, number) is False:
         return None
     pos = state.index(number)
     new_state = state.copy()
-    new_state[pos] = player
+    new_state[pos] = state[9]
+    if state[9] == 'A':
+        new_state[9] = 'B'
+    else:
+        new_state[9] = 'A'
     # is_final, winner = is_final_state(new_state)
     # if is_final is True:
     #     return new_state, winner
@@ -88,13 +93,13 @@ def heuristic(state):
             value_row -= 2
         if state[i * 3: i * 3 + 3].count('B') == 1 and state[i * 3: i * 3 + 3].count('A') == 0:
             value_row -= 1
-        if state[i::3].count('A') == 2 and state[i::3].count('B') == 0:
+        if state[i:9:3].count('A') == 2 and state[i:9:3].count('B') == 0:
             value_col += 2
-        if state[i::3].count('A') == 1 and state[i::3].count('B') == 0:
+        if state[i:9:3].count('A') == 1 and state[i:9:3].count('B') == 0:
             value_col += 1
-        if state[i::3].count('B') == 2 and state[i::3].count('A') == 0:
+        if state[i:9:3].count('B') == 2 and state[i:9:3].count('A') == 0:
             value_col -= 2
-        if state[i::3].count('B') == 1 and state[i::3].count('A') == 0:
+        if state[i:9:3].count('B') == 1 and state[i:9:3].count('A') == 0:
             value_col -= 1
     if state[0:9:4].count('A') == 2 and state[0:9:4].count('B') == 0:
         value_diag1 += 2
@@ -114,60 +119,70 @@ def heuristic(state):
     return value
 
 
-def generate_states(state, player):
+def generate_states(state):
     states = []
     for i in range(9):
-        new_state = transition(state, i + 1, player)
+        new_state = transition(state, i + 1)
         if new_state is not None:
             states.append(new_state)
     return states
 
 
-def minimax(depth, state, player):
+def minimax(depth, state):
     if is_final_state(state)[0] or depth == 0:
         #  print(state, is_final_state(state), heuristic(state, player), depth)
         return state, heuristic(state)
-    if player == 'B':
-        states = generate_states(state, 'B')
+    if state[9] == 'B':
+        states = generate_states(state)
         best = float('inf')
+        good_state = state
         for st in states:
-            _, val = minimax(depth - 1, st, 'A')
+            _, val = minimax(depth - 1, st)
             if val < best:
                 best = val
                 good_state = st
         return good_state, best
 
-    if player == 'A':
-        states = generate_states(state, 'A')
+    if state[9] == 'A':
+        states = generate_states(state)
         best = float('-inf')
-
+        good_state = state
         for st in states:
-            _, val = minimax(depth - 1, st, 'B')
+            _, val = minimax(depth - 1, st)
             if val > best:
                 best = val
                 good_state = st
         return good_state, best
 
 
+def show(state):
+    if state[9] == 'A':
+        print("Player B: ")
+    else:
+        print("Player A: ")
+    for i in range(3):
+        row = state[i * 3: i * 3 + 3]
+        print(" | ".join(str(cell) if isinstance(cell, int) else cell for cell in row))
+        if i < 2:
+            print("-" * 9)
+
+
 def calculate():
     state = initialize()
-    current_player = 'A'
-    print(state)
+    print(state[:-1])
     while not is_final_state(state)[0]:
-        if current_player == 'A':
+        if state[9] == 'A':
             number = int(input("Choose a number: "))
-            new_state = transition(state, number, current_player)
-            print("PLayer A: ", new_state)
+            new_state = transition(state, number)
+            show(new_state)
             if new_state is None:
                 print("Invalid number!")
                 continue
             state = new_state
-            current_player = 'B'
         else:
-            new_state, best = minimax(3, state, 'B')
-            current_player = 'A'
+            new_state, best = minimax(3, state)
             state = new_state
-            print("Player B: ", state)
+            show(state)
     print(is_final_state(state))
 
 
