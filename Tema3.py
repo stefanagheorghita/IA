@@ -155,11 +155,11 @@ def calculate():
     print(state)
     while not is_final_state(state)[0]:
         if current_player == 'A':
-            number = int(input("Alege un numar: "))
+            number = int(input("Choose a number: "))
             new_state = transition(state, number, current_player)
             print("PLayer A: ", new_state)
             if new_state is None:
-                print("Numarul nu este valid")
+                print("Invalid number!")
                 continue
             state = new_state
             current_player = 'B'
