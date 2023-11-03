@@ -1,9 +1,13 @@
 # Reprezentarea unei stari:
-#   Stare initiala: vector de 9 elemente, ce contine cifrele de la 1 la 9 in ordine crescatoare
+#   Stare initiala: vector de 10 elemente, ce contine cifrele de la 1 la 9 in ordinea din matricea magica,
+#                   iar pe ultima pozitie se gaseste jucatorul curent (A sau B)
 #                   pe pozitia i se va afla valoarea i+1: v[i] = i+1
-#   Stare intermediara: la alegerea unui numar x de catre un jucator, se va modifica pozitia x-1,
+#   Stare intermediara: la alegerea unui numar x de catre un jucator, se va modifica pozitia acelui numar
 #                       astfel incat sa fie inlocuita cu simbolul jucatorului care a ales numarul (A sau B)
-
+#   Stare finala: unul din jucatori si-a plasat propriul simbol
+#                       pe o linie/coloana/diagonala(astfel ca suma numerelor alese de el sa fie 15)
+#                       sau nu mai exista spatii ce contin numere (remiza)
+# Functia de validare a unei tranzitii: se verifica sa existe numarul ales de jucator in vectorul starii curente
 magic_square = [
     [8, 1, 6],
     [3, 5, 7],
@@ -85,36 +89,22 @@ def heuristic(state):
         else:
             return 0
     for i in range(3):
-        if state[i * 3: i * 3 + 3].count('A') == 2 and state[i * 3: i * 3 + 3].count('B') == 0:
-            value_row += 2
-        if state[i * 3: i * 3 + 3].count('A') == 1 and state[i * 3: i * 3 + 3].count('B') == 0:
-            value_row += 1
-        if state[i * 3: i * 3 + 3].count('B') == 2 and state[i * 3: i * 3 + 3].count('A') == 0:
-            value_row -= 2
-        if state[i * 3: i * 3 + 3].count('B') == 1 and state[i * 3: i * 3 + 3].count('A') == 0:
-            value_row -= 1
-        if state[i:9:3].count('A') == 2 and state[i:9:3].count('B') == 0:
-            value_col += 2
-        if state[i:9:3].count('A') == 1 and state[i:9:3].count('B') == 0:
-            value_col += 1
-        if state[i:9:3].count('B') == 2 and state[i:9:3].count('A') == 0:
-            value_col -= 2
-        if state[i:9:3].count('B') == 1 and state[i:9:3].count('A') == 0:
-            value_col -= 1
-    if state[0:9:4].count('A') == 2 and state[0:9:4].count('B') == 0:
-        value_diag1 += 2
-    if state[0:9:4].count('A') == 1 and state[0:9:4].count('B') == 0:
-        value_diag1 += 1
-    if state[0:9:4].count('B') == 2 and state[0:9:4].count('A') == 0:
-        value_diag1 -= 2
-    if state[0:9:4].count('B') == 1 and state[0:9:4].count('A') == 0:
-        value_diag1 -= 1
-    if state[2:7:2].count('A') == 2 and state[2:7:2].count('B') == 0:
-        value_diag2 += 2
-    if state[2:7:2].count('A') == 1 and state[2:7:2].count('B') == 0:
-        value_diag2 += 1
-    if state[2:7:2].count('B') == 2 and state[2:7:2].count('A') == 0:
-        value_diag2 -= 2
+        if state[i * 3: i * 3 + 3].count('A') > 0 and state[i * 3: i * 3 + 3].count('B') == 0:
+            value_row += state[i * 3: i * 3 + 3].count('A') ** 2
+        if state[i * 3: i * 3 + 3].count('B') > 0 and state[i * 3: i * 3 + 3].count('A') == 0:
+            value_row -= state[i * 3: i * 3 + 3].count('B') ** 2
+        if state[i:9:3].count('A') > 0 and state[i:9:3].count('B') == 0:
+            value_col += state[i:9:3].count('A') ** 2
+        if state[i:9:3].count('B') > 0 and state[i:9:3].count('A') == 0:
+            value_col -= state[i:9:3].count('B') ** 2
+    if state[0:9:4].count('A') > 0 and state[0:9:4].count('B') == 0:
+        value_diag1 += state[0:9:4].count('A') ** 2
+    if state[0:9:4].count('B') > 0 and state[0:9:4].count('A') == 0:
+        value_diag1 -= state[0:9:4].count('B') ** 2
+    if state[2:7:2].count('A') > 0 and state[2:7:2].count('B') == 0:
+        value_diag2 += state[2:7:2].count('A') ** 2
+    if state[2:7:2].count('B') > 0 and state[2:7:2].count('A') == 0:
+        value_diag2 -= state[2:7:2].count('B') ** 2
     value = value_row + value_col + value_diag1 + value_diag2
     return value
 
