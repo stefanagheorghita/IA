@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 wind = [0, 0, 0, 1, 1, 1, 2, 2, 1, 0]
 
@@ -71,12 +72,42 @@ def get_max_action(Q, state):
     return max_action[rand]
 
 
-def algorithm(initial_state):
+def algorithm_without_rw(initial_state, goal_state):
+    Q = initialize_table()
+    learning_rate, discount_factor, epsilon, episodes = initialize_parameters()
+    discount_factor = 0.9
+
+    all_rewards = []
+    reward = -1
+    for episode in range(episodes):
+        episode_reward = 0
+        state = initial_state
+        num_steps = 0
+        while state != goal_state and num_steps < 1000:
+            num_steps += 1
+            if np.random.uniform(0, 1) < epsilon:
+                action = np.random.choice(['up', 'down', 'left', 'right'])
+            else:
+                action = get_max_action(Q, state)
+            next_state = get_next_state(state, action)
+            Q[state, action] += learning_rate * (
+                    reward + discount_factor * get_max_value(Q, next_state) - Q[state, action])
+            state = next_state
+            epsilon = epsilon * 0.999
+            episode_reward += reward
+        all_rewards.append(episode_reward)
+
+    return Q, all_rewards
+
+
+def algorithm(initial_state, goal_state):
     Q = initialize_table()
     learning_rate, discount_factor, epsilon, episodes = initialize_parameters()
     # row = 0
     # col = 0
+    all_rewards = []
     for episode in range(episodes):
+        episode_reward = 0
         # if row == 6 and col == 9:
         #     row = 0
         #     col = 0
@@ -90,14 +121,14 @@ def algorithm(initial_state):
         # state = (row, col)
         state = initial_state
         num_steps = 0
-        while state != (3, 7) and num_steps < 500:
+        while state != goal_state and num_steps < 500:
             num_steps += 1
             if np.random.uniform(0, 1) < epsilon:
                 action = np.random.choice(['up', 'down', 'left', 'right'])
             else:
                 action = get_max_action(Q, state)
             next_state = get_next_state(state, action)
-            if next_state == (3, 7):
+            if next_state == goal_state:
                 reward = 100
             else:
                 reward = -1
@@ -105,8 +136,10 @@ def algorithm(initial_state):
                     reward + discount_factor * get_max_value(Q, next_state) - Q[state, action])
             state = next_state
             epsilon = epsilon * 0.999
+            episode_reward += reward
+        all_rewards.append(episode_reward)
 
-    return Q
+    return Q, all_rewards
 
 
 def get_policy(Q):
@@ -131,7 +164,7 @@ def print_policy(policy):
 def follow_path(policy, initial_state):
     state = initial_state
     num_steps = 0
-    while state != (3, 7) and num_steps < 1000:
+    while state != (3, 7) and num_steps < 500:
         num_steps += 1
         print("-" * 50)
         print("We are at step: ", num_steps)
@@ -142,14 +175,32 @@ def follow_path(policy, initial_state):
     print(state)
 
 
+def draw_plot(rewards):
+    plt.plot(rewards)
+    plt.xlabel("Episodes")
+    plt.ylabel("Rewards")
+    plt.title("Rewards vs Episodes")
+    plt.show()
+
+
 if __name__ == '__main__':
     initial_state = (3, 0)
-    Q = algorithm(initial_state)
+    goal_state = (3, 7)
+    Q, rewards = algorithm(initial_state, goal_state)
     policy = get_policy(Q)
-    # print_policy(policy)
+    # for i in range(7):
+    #     for j in range(10):
+    #         print("For state ", (i, j), " the best action is ", policy[(i, j)])
+    #         print("up", Q[(i, j), 'up'], "down", Q[(i, j), 'down'], "left", Q[(i, j), 'left'], "right",
+    #               Q[(i, j), 'right'])
+    follow_path(policy, initial_state)
+    draw_plot(rewards)
+    Q1, rewards1 = algorithm_without_rw(initial_state, goal_state)
+    policy1 = get_policy(Q1)
     for i in range(7):
         for j in range(10):
-            print("For state ", (i, j), " the best action is ", policy[(i, j)])
-            print("up", Q[(i, j), 'up'], "down", Q[(i, j), 'down'], "left", Q[(i, j), 'left'], "right",
-                  Q[(i, j), 'right'])
-    follow_path(policy, initial_state)
+            print("For state ", (i, j), " the best action is ", policy1[(i, j)])
+            print("up", Q1[(i, j), 'up'], "down", Q1[(i, j), 'down'], "left", Q1[(i, j), 'left'], "right",
+                  Q1[(i, j), 'right'])
+    follow_path(policy1, initial_state)
+    draw_plot(rewards1)
